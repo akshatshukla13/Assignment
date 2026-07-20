@@ -210,6 +210,9 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/mini-erp-crm';
 
+// Disable command buffering so queries fail immediately if connection isn't ready
+mongoose.set('bufferCommands', false);
+
 mongoose.connect(MONGODB_URI)
   .then(async () => {
     console.log('Connected to MongoDB');
