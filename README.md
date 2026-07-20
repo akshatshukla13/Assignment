@@ -4,6 +4,14 @@ A full-stack ERP/CRM system for wholesale/distribution companies — featuring C
 
 ---
 
+## 🌐 Live Deployments
+
+- **Live Web Portal (Frontend):** [https://assignment-sigma-ivory-46.vercel.app](https://assignment-sigma-ivory-46.vercel.app/)
+- **API Gateway & Showcase (Backend):** [https://assignment-nd54.vercel.app](https://assignment-nd54.vercel.app/)
+- **GitHub Repository:** [https://github.com/akshatshukla13/Assignment](https://github.com/akshatshukla13/Assignment)
+
+---
+
 ## 📐 Architecture Overview
 
 ```
