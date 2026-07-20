@@ -27,7 +27,42 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true
 }));
-app.use(express.json());
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/mini-erp-crm';
+
+let connectionPromise = null;
+let isSeeded = false;
+
+// Middleware to ensure database is connected before processing requests
+const ensureDbConnection = async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      if (!isSeeded) {
+        await seedData();
+        isSeeded = true;
+      }
+      return next();
+    }
+
+    if (!connectionPromise) {
+      console.log('Connecting to MongoDB...');
+      connectionPromise = mongoose.connect(MONGODB_URI).then(async (conn) => {
+        console.log('Connected to MongoDB');
+        await seedData();
+        isSeeded = true;
+        return conn;
+      });
+    }
+
+    await connectionPromise;
+    next();
+  } catch (error) {
+    connectionPromise = null; // Reset on failure
+    next(error);
+  }
+};
+
+app.use(ensureDbConnection);
 
 // Routes
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
@@ -207,18 +242,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: err.message || 'Something went wrong!' });
 });
 
-const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/mini-erp-crm';
-
-// Disable command buffering so queries fail immediately if connection isn't ready
-mongoose.set('bufferCommands', false);
-
-mongoose.connect(MONGODB_URI)
-  .then(async () => {
-    console.log('Connected to MongoDB');
-    await seedData();
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  })
-  .catch((err) => console.error('MongoDB connection error:', err));
+// Start local port listener only if NOT running in a serverless environment
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
 
 export default app;
