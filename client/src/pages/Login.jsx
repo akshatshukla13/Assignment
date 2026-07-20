@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Building2, ShieldCheck, ShoppingCart, Warehouse, Calculator } from 'lucide-react';
+import api from '../api/axios';
 
 const ROLES = [
   {
@@ -61,9 +62,36 @@ export default function Login() {
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('admin123');
   const [activeRole, setActiveRole] = useState('Admin');
+  const [serverStatus, setServerStatus] = useState('checking'); // 'checking', 'online', 'offline'
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkServer = async () => {
+      try {
+        await api.get('/health');
+        if (isMounted) setServerStatus('online');
+      } catch (err) {
+        if (isMounted) setServerStatus('offline');
+      }
+    };
+
+    checkServer();
+
+    // Check again every 5s if offline/checking to handle serverless cold start wakeup
+    const timer = setInterval(() => {
+      if (serverStatus !== 'online') {
+        checkServer();
+      }
+    }, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
+  }, [serverStatus]);
 
   const prefill = (r) => {
     setActiveRole(r.role);
@@ -88,19 +116,41 @@ export default function Login() {
   const active = ROLES.find(r => r.role === activeRole);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{
+    <div className="min-h-screen flex flex-col items-center justify-center p-4" style={{
       background: 'radial-gradient(ellipse at 60% 0%, rgba(99,102,241,0.12) 0%, transparent 55%), radial-gradient(ellipse at 10% 80%, rgba(16,185,129,0.08) 0%, transparent 50%), linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%)'
     }}>
       <div className="w-full max-w-md">
 
         {/* Logo / Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 shadow-lg"
             style={{ background: 'linear-gradient(135deg, #001e40 0%, #003580 100%)' }}>
             <Building2 size={28} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Mini ERP + CRM</h1>
           <p className="text-sm text-slate-500 mt-1">Sign in to your portal</p>
+        </div>
+
+        {/* Server Status Monitor */}
+        <div className="mb-4">
+          {serverStatus === 'checking' && (
+            <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">
+              <span className="app-loader-spinner" style={{ width: '12px', height: '12px', borderWidth: '1.5px', borderTopColor: '#6366f1' }} />
+              Connecting to API server...
+            </div>
+          )}
+          {serverStatus === 'online' && (
+            <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              API Server Online & Connected
+            </div>
+          )}
+          {serverStatus === 'offline' && (
+            <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" />
+              Server warming up (cold start, please wait 10-15s)...
+            </div>
+          )}
         </div>
 
         <div className="app-dialog-panel space-y-6">
@@ -210,6 +260,27 @@ export default function Login() {
               }
             </button>
           </form>
+
+          {/* Developer Showcase Section */}
+          <div className="pt-5 border-t border-slate-200 text-center space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Developed By</p>
+            <div className="flex flex-col items-center">
+              <h4 className="text-sm font-bold text-slate-800">Akshat Shukla</h4>
+              <p className="text-[11px] text-slate-500 leading-tight">Full Stack Developer Assignment Submission</p>
+            </div>
+            <div className="flex justify-center gap-2">
+              <a href="https://github.com/akshatshukla13/Assignment/blob/main/README.md" target="_blank" rel="noopener noreferrer" className="btn-muted text-[10px] py-1 px-2.5 rounded-lg text-slate-600 hover:text-indigo-600">
+                📖 README
+              </a>
+              <a href="https://github.com/akshatshukla13" target="_blank" rel="noopener noreferrer" className="btn-muted text-[10px] py-1 px-2.5 rounded-lg text-slate-600 hover:text-indigo-600">
+                💻 GitHub
+              </a>
+              <a href="mailto:akshatvijay1302@gmail.com" className="btn-muted text-[10px] py-1 px-2.5 rounded-lg text-slate-600 hover:text-indigo-600">
+                ✉️ Email
+              </a>
+            </div>
+          </div>
+
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
